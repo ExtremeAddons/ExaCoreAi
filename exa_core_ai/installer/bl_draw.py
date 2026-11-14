@@ -30,8 +30,15 @@ class Draw:
         """Initialize the Draw class with the path to the service configuration and the extreme addons' path.
         :param extreme_addons_path: The path to the extreme addons directory."""
 
-        self.config_path = os.path.join(os.path.dirname(__file__), "../service_config.json")
-        self.installed_r_list = ServiceValidator(self.config_path).get_resource_lists()
+        self.local_config_path = os.path.join(os.path.dirname(__file__), "../local_config.json")
+        self.service_config_path = os.path.join(os.path.dirname(__file__), "../service_config.json")
+
+        installation_ok = ServiceValidator(extreme_addons_path).is_installed()
+        if installation_ok:
+            self.r_list = ServiceValidator(self.local_config_path).get_resource_lists()
+        else:
+            self.r_list = ServiceValidator(self.service_config_path).get_resource_lists()
+
         self.extreme_addons_path = extreme_addons_path
 
     def draw_requirement_files(self, layout, context=None, use_box=False):
@@ -56,21 +63,21 @@ class Draw:
 
         target_layout.separator()
 
-        if self.installed_r_list.get("runtimes"):
+        if self.r_list.get("runtimes"):
             target_layout.label(text="Runtimes:", icon='FILE_SCRIPT')
-            for runtime in self.installed_r_list["runtimes"]:
+            for runtime in self.r_list["runtimes"]:
                 target_layout.label(text=f"  • {runtime}")
             target_layout.separator()
 
-        if self.installed_r_list.get("dependencies"):
+        if self.r_list.get("dependencies"):
             target_layout.label(text="Dependencies:", icon='PACKAGE')
-            for dep in self.installed_r_list["dependencies"]:
+            for dep in self.r_list["dependencies"]:
                 target_layout.label(text=f"  • {dep}")
             target_layout.separator()
 
-        if self.installed_r_list.get("assets"):
+        if self.r_list.get("assets"):
             target_layout.label(text="Assets & AI Models:", icon='FILE_BACKUP')
-            for asset in self.installed_r_list["assets"]:
+            for asset in self.r_list["assets"]:
                 target_layout.label(text=f"  • {asset}")
 
     def draw_exa_ai_core(self, context, layout):

@@ -26,11 +26,11 @@
 # from .dependency_registry import DependencyRegistry
 #
 #
-# class PackageManager:
+# class DependencyManager:
 #     """
 #     Manages dependency installation for each runtime in the plan,
 #     monitoring cancellation and executing commands universally.
-#     Resolves hardware-specific packages via DependencyRegistry.
+#     Resolves hardware-specific dependencies via DependencyRegistry.
 #     """
 #
 #     def __init__(self, plan, cancel_event=None):
@@ -46,7 +46,7 @@
 #     def _resolve_dependencies(self, dependencies):
 #         """
 #         Resolve each dependency string against the DependencyRegistry.
-#         If the base package name matches a registry entry, replace it with
+#         If the base dependency name matches a registry entry, replace it with
 #         the hardware-specific variant and collect any extra_args (e.g. --index-url).
 #         Otherwise, keep the original dependency string unchanged.
 #
@@ -54,9 +54,9 @@
 #             dependencies: List of dependency strings from the installation plan.
 #
 #         Returns:
-#             Tuple of (resolved_packages list, extra_args list).
+#             Tuple of (resolved_dependencies list, extra_args list).
 #         """
-#         resolved_packages = []
+#         resolved_dependencies = []
 #         extra_args = []
 #
 #         for dep in dependencies:
@@ -68,64 +68,16 @@
 #             )
 #
 #             if instructions:
-#                 resolved_packages.append(instructions["pkg"])
+#                 resolved_dependencies.append(instructions["pkg"])
 #                 extra_args.extend(instructions.get("extra_args", []))
 #             else:
 #                 # No registry match, keep original dependency as-is
-#                 resolved_packages.append(dep)
+#                 resolved_dependencies.append(dep)
 #
-#         return resolved_packages, extra_args
-#
-#     def execute_installations(self):
-#         jobs = self.plan.get("jobs", [])
-#
-#         for job in jobs:
-#             self._check_cancel()
-#
-#             if job.get("type") != "runtime":
-#                 continue
-#
-#             target_path = job.get("target_path")
-#             executable = job.get("executable")
-#             args = job.get("args", [])
-#             dependencies = job.get("dependencies", [])
-#
-#             if not executable or not dependencies:
-#                 continue
-#
-#             executable_path = os.path.join(target_path, executable)
-#             if not os.path.exists(executable_path):
-#                 raise FileNotFoundError(f"Eseguibile non trovato in {executable_path}")
-#
-#             if os.name != "nt":
-#                 try:
-#                     current_mode = os.stat(executable_path).st_mode
-#                     os.chmod(
-#                         executable_path,
-#                         current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-#                     )
-#                 except Exception:
-#                     pass
-#
-#             # Resolve hardware-specific packages and collect extra args
-#             resolved_deps, extra_args = self._resolve_dependencies(dependencies)
-#
-#             cmd = [executable_path] + args + extra_args + resolved_deps
-#
-#             process = subprocess.Popen(
-#                 cmd,
-#                 stdout=subprocess.PIPE,
-#                 stderr=subprocess.PIPE,
-#                 text=True
-#             )
-#
-#             while process.poll() is None:
-#                 self._check_cancel()
-#                 threading.Event().wait(0.1)
-#
-#             if process.returncode != 0:
-#                 _, stderr = process.communicate()
-#                 raise RuntimeError(f"Errore durante l installazione delle dipendenze: {stderr}")
+#         return resolved_dependencies, extra_args
+# ...existing code...
+#             # Resolve hardware-specific dependencies and collect extra args
+# ...existing code...
 
 from collections import deque
 import os
@@ -137,7 +89,7 @@ from .graphic_scanner import ProGraphicScanner
 from .dependency_registry import DependencyRegistry
 
 
-class PackageManager:
+class DependencyManager:
     """
     Manages dependency installation for each runtime in the plan,
     monitoring cancellation and reporting live progress to the UI queue.
@@ -171,7 +123,7 @@ class PackageManager:
     def _resolve_single_dependency(self, dep):
         """
         Resolves a single dependency entry against DependencyRegistry.
-        Splits space separated package strings into individual pip arguments.
+        Splits space separated dependency strings into individual pip arguments.
         """
         base_name = re.split(r'[=<>!~]', dep)[0].strip().lower()
 
@@ -180,9 +132,9 @@ class PackageManager:
         )
 
         if instructions:
-            packages = instructions["pkg"].split()
+            dependencies = instructions["pkg"].split()
             extra_args = list(instructions.get("extra_args", []))
-            return packages, extra_args
+            return dependencies, extra_args
 
         return [dep], []
 
@@ -194,8 +146,8 @@ class PackageManager:
         if line.startswith("Downloading "):
             pkg = line.replace("Downloading ", "").split()[0]
             return f"{prefix}: downloading {pkg}..."
-        if line.startswith("Installing collected packages:"):
-            return f"{prefix}: installing packages..."
+        if line.startswith("Installing collected dependencies:"):
+            return f"{prefix}: installing dependencies..."
         return None
 
     def execute_installations(self):
@@ -214,6 +166,10 @@ class PackageManager:
         completed_deps = 0
         progress_span = self.max_progress - self.base_progress
 
+        # Dictionary to store resolved dependency names per runtime,
+        # so LocalConfigWriter can record what was actually installed.
+        resolved_dependencies_map = self.plan.setdefault("resolved_dependencies", {})
+
         for job in runtime_jobs:
             self._check_cancel()
 
@@ -221,6 +177,7 @@ class PackageManager:
             executable = job.get("executable")
             args = job.get("args", [])
             dependencies = job.get("dependencies", [])
+            runtime_name = job.get("name", "default")
 
             executable_path = os.path.join(target_path, executable)
             if not os.path.exists(executable_path):
@@ -239,6 +196,9 @@ class PackageManager:
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
 
+            # Collect all resolved dependency names for this runtime
+            installed_dependencies = []
+
             for dep in dependencies:
                 self._check_cancel()
 
@@ -246,8 +206,8 @@ class PackageManager:
                 step_progress = self.base_progress + (completed_deps / total_deps) * progress_span
                 self._emit(f"[{current_step}/{total_deps}] Preparing {dep}...", step_progress)
 
-                resolved_pkgs, extra_args = self._resolve_single_dependency(dep)
-                cmd = [executable_path] + args + extra_args + resolved_pkgs
+                resolved_deps, extra_args = self._resolve_single_dependency(dep)
+                cmd = [executable_path] + args + extra_args + resolved_deps
 
                 process = subprocess.Popen(
                     cmd,
@@ -279,6 +239,12 @@ class PackageManager:
                         f"Errore durante l'installazione di '{dep}':\n{error_tail}"
                     )
 
+                # Record the actually installed dependency names
+                installed_dependencies.extend(resolved_deps)
+
                 completed_deps += 1
                 done_progress = self.base_progress + (completed_deps / total_deps) * progress_span
                 self._emit(f"[{completed_deps}/{total_deps}] Installed {dep}", done_progress)
+
+            # Store resolved dependencies for this runtime in the plan
+            resolved_dependencies_map[runtime_name] = installed_dependencies

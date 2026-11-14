@@ -22,8 +22,7 @@ import threading
 from .config_reader import ConfigReader
 from .downloader import ResourceDownloader
 from .extractor import ResourceExtractor
-from .local_config_writer import LocalConfigWriter
-from .package_manager import PackageManager
+from .dependency_manager import DependencyManager
 
 
 class Orchestrator:
@@ -75,11 +74,11 @@ class Orchestrator:
             if self._cancel_event.is_set(): return
 
             # self.message_queue.put(("RUNNING", "Installing dependencies...", 0.85))
-            # manager = PackageManager(plan, self._cancel_event)
+            # manager = DependencyManager(plan, self._cancel_event)
             # manager.execute_installations()
 
             self.message_queue.put(("RUNNING", "Installing dependencies...", 0.85))
-            manager = PackageManager(
+            manager = DependencyManager(
                 plan,
                 cancel_event=self._cancel_event,
                 message_queue=self.message_queue,

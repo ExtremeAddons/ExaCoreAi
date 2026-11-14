@@ -20,12 +20,27 @@ import os
 
 
 class LocalConfigWriter:
+    """
+    Writes the final local configuration file after a successful installation.
+    Records runtime executables, their installed dependencies, and asset paths.
+    """
+
     def __init__(self, plan):
         self.plan = plan
 
     def write_config(self):
+        """
+        Build and persist the local_config.json with absolute paths
+        for runtimes (executable + dependencies) and assets.
+
+        Uses the resolved dependency names recorded by DependencyManager when available,
+        falling back to the original dependency list from the plan.
+        """
         global_target_dir = os.path.abspath(self.plan.get("global_target_dir"))
         bridge_in_path = os.path.join(global_target_dir, "bridge_in.py")
+
+        # Resolved dependencies map populated by DependencyManager during installation
+        resolved_dependencies_map = self.plan.get("resolved_dependencies", {})
 
         config_data = {
             "install_path": global_target_dir,
@@ -44,10 +59,18 @@ class LocalConfigWriter:
 
             if job_type == "runtime":
                 executable = job.get("executable")
+                # Prefer resolved dependencies (hardware-specific) over original list
+                dependencies = resolved_dependencies_map.get(name, job.get("dependencies", []))
+
+                runtime_entry = {}
                 if executable:
-                    config_data["runtimes"][name] = os.path.abspath(
+                    runtime_entry["executable"] = os.path.abspath(
                         os.path.join(target_path, executable)
                     )
+                if dependencies:
+                    runtime_entry["dependencies"] = dependencies
+
+                config_data["runtimes"][name] = runtime_entry
 
             elif job_type == "asset":
                 config_data["assets"][name] = os.path.abspath(target_path)

@@ -1,8 +1,7 @@
 {
   "description": "Configuration file for the ExaCoreAi microservice installer. Specifies the standalone Python runtime version, required AI/ML dependencies (OpenCV, ONNX Runtime, Pillow), model assets to download (LaMa inpainting model), and the remote manifest URL that maps platform-specific download links. The installer reads this file to build an isolated environment separate from Blender's Python interpreter.",
-  "runtimes": [
-    {
-      "name": "python",
+  "runtimes": {
+    "python": {
       "version": "3.11.18",
       "target_subfolder": "python_env",
       "dependencies": [
@@ -11,7 +10,7 @@
         "onnxruntime"
       ]
     }
-  ],
+  },
   "assets": [
     {
       "name": "lama_fp32.onnx",

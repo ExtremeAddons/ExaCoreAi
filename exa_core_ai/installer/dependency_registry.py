@@ -19,12 +19,12 @@
 
 class DependencyRegistry:
     """
-    Centralized registry to map hardware profiles to specific pip packages and URLs.
+    Centralized registry to map hardware profiles to specific pip dependencies and URLs.
     This replaces hardcoded logic and scales to PyTorch, TensorFlow, xFormers etc.
     """
 
     @staticmethod
-    def get_install_instructions(profile, package_base_name):
+    def get_install_instructions(profile, dependency_base_name):
         registry = {
             "onnxruntime": {
                 "windows": {
@@ -65,7 +65,7 @@ class DependencyRegistry:
             }
         }
 
-        os_data = registry.get(package_base_name, {}).get(profile.os_type, {})
+        os_data = registry.get(dependency_base_name, {}).get(profile.os_type, {})
         result = os_data.get(profile.compute_backend, os_data.get("cpu"))
 
         return result

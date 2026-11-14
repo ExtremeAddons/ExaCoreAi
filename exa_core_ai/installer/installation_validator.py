@@ -27,7 +27,12 @@ class ServiceValidator:
 
     def __init__(self, base_path):
         self.base_path = base_path
-        self.config_path = os.path.join(os.path.dirname(__file__), "../service_config.json")
+        # If the passed path is a file (e.g. local_config.json), use it directly as config source.
+        # Otherwise treat it as a base directory and default to service_config.json.
+        if os.path.isfile(base_path):
+            self.config_path = base_path
+        else:
+            self.config_path = os.path.join(os.path.dirname(__file__), "../service_config.json")
 
     def get_resource_lists(self) -> dict:
         """
@@ -39,8 +44,7 @@ class ServiceValidator:
         dependencies = []
         assets = []
 
-        for rt in config.get("runtimes", []):
-            rt_name = rt.get("name")
+        for rt_name, rt in config.get("runtimes", {}).items():
             if rt_name:
                 runtimes.append(rt_name)
 
@@ -50,10 +54,17 @@ class ServiceValidator:
                 if clean_name:
                     dependencies.append(clean_name)
 
-        for ast in config.get("assets", []):
-            ast_name = ast.get("name")
-            if ast_name:
-                assets.append(ast_name)
+        # Handle both formats: list of dicts (service_config) or dict name->path (local_config)
+        assets_raw = config.get("assets", [])
+        if isinstance(assets_raw, dict):
+            for ast_name in assets_raw.keys():
+                if ast_name:
+                    assets.append(ast_name)
+        else:
+            for ast in assets_raw:
+                ast_name = ast.get("name")
+                if ast_name:
+                    assets.append(ast_name)
 
         return {
             "runtimes": runtimes,
@@ -87,9 +98,9 @@ class ServiceValidator:
             return False
 
         # 1. Check Runtimes
-        runtimes = config.get("runtimes", [])
-        for runtime in runtimes:
-            subfolder = runtime.get("target_subfolder", runtime.get("name", ""))
+        runtimes = config.get("runtimes", {})
+        for rt_name, runtime in runtimes.items():
+            subfolder = runtime.get("target_subfolder", rt_name)
             runtime_path = os.path.normpath(os.path.join(global_target_dir, subfolder))
 
             if not os.path.exists(runtime_path) or not os.path.isdir(runtime_path):

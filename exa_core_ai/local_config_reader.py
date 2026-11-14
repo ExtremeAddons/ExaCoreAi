@@ -63,13 +63,41 @@ class LocalConfigReader:
         return bridge_path
 
     def get_runtime(self, runtime_name: str) -> str:
-        """Restituisce il percorso dell'eseguibile per il runtime richiesto."""
+        """
+        Returns the absolute path of the executable for the requested runtime.
+        Supports both legacy (plain string) and new (dict with 'executable') formats.
+        """
         data = self._load_data()
         runtimes = data.get("runtimes", {})
-        executable_path = runtimes.get(runtime_name)
-        if not executable_path:
+        entry = runtimes.get(runtime_name)
+        if not entry:
             raise KeyError(f"Runtime '{runtime_name}' non trovato nella configurazione locale.")
+
+        # Handle new dict format: {"executable": "...", "dependencies": [...]}
+        if isinstance(entry, dict):
+            executable_path = entry.get("executable")
+        else:
+            # Legacy format: plain string path
+            executable_path = entry
+
+        if not executable_path:
+            raise KeyError(f"Runtime '{runtime_name}' non ha un eseguibile definito.")
         return executable_path
+
+    def get_runtime_dependencies(self, runtime_name: str) -> list:
+        """
+        Returns the list of installed dependencies for the requested runtime.
+        Returns an empty list if no dependencies are recorded.
+        """
+        data = self._load_data()
+        runtimes = data.get("runtimes", {})
+        entry = runtimes.get(runtime_name)
+        if not entry:
+            raise KeyError(f"Runtime '{runtime_name}' non trovato nella configurazione locale.")
+
+        if isinstance(entry, dict):
+            return entry.get("dependencies", [])
+        return []
 
     def get_asset(self, asset_name: str) -> str:
         """Restituisce il percorso assoluto del modello o asset richiesto."""

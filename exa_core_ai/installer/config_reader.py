@@ -89,11 +89,10 @@ class ConfigReader:
             "jobs": []
         }
 
-        local_runtimes = self.local_config.get("runtimes", [])
+        local_runtimes = self.local_config.get("runtimes", {})
         manifest_runtimes = self.manifest.get("runtimes", {})
 
-        for runtime in local_runtimes:
-            name = runtime.get("name")
+        for name, runtime in local_runtimes.items():
             version = runtime.get("version")
             subfolder = runtime.get("target_subfolder", name)
 

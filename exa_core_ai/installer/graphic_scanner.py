@@ -35,7 +35,7 @@ class HardwareProfile:
 class ProGraphicScanner:
     """
     Enterprise hardware scanner.
-    Returns a standardized HardwareProfile instead of specific package names.
+    Returns a standardized HardwareProfile instead of specific dependency names.
     """
 
     @staticmethod
