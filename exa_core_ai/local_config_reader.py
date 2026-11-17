@@ -115,3 +115,81 @@ class LocalConfigReader:
     def get_all_assets(self) -> dict:
         """Restituisce l'intero dizionario degli asset installati."""
         return self._load_data().get("assets", {})
+
+    # ------------------------------------------------------------------
+    # Model Path Provider
+    # ------------------------------------------------------------------
+
+    def get_models(self, model_type: str = None, model_format: str = None) -> list:
+        """
+        Return a filtered list of models registered in the local configuration.
+
+        Models are stored in the "assets" section of local_config.json as
+        ``{name: path}`` pairs. The model type is inferred from the folder
+        name in the path (e.g. "inpainting" from ``models/inpainting/foo.onnx``),
+        and the format from the file extension.
+
+        Args:
+            model_type: Filter by model type (folder segment in path), case-insensitive.
+                        Examples: "inpainting", "music", "generateimages".
+                        If None or "ALL" (case-insensitive), no type filtering is applied.
+            model_format: Filter by file extension, case-insensitive.
+                          Examples: "onnx", "pt", "safetensors".
+                          If None or "ALL" (case-insensitive), no format filtering is applied.
+
+        Returns:
+            A list of dictionaries, each containing:
+                - "name" (str): the model name as registered in config (e.g. "lama_fp32.onnx").
+                - "path" (str): the absolute path to the model file on disk.
+
+        Raises:
+            FileNotFoundError: If the local configuration file does not exist.
+        """
+
+        data = self._load_data()
+        assets = data.get("assets", {})
+        install_path = data.get("install_path", "")
+
+        # Build the canonical models root: <install_path>/models/
+        models_root = os.path.join(install_path, "models").replace("\\", "/") + "/"
+
+        # Normalise filters to lowercase for case-insensitive comparison
+        type_filter = model_type.lower().strip() if model_type else None
+        if type_filter == "all":
+            type_filter = None
+
+        format_filter = model_format.lower().strip() if model_format else None
+        if format_filter == "all":
+            format_filter = None
+
+        results = []
+
+        for name, path in assets.items():
+            # Compute the relative path after the models root to derive the type
+            norm_path = path.replace("\\", "/")
+            current_type = ""
+            if norm_path.startswith(models_root):
+                # Strip the root prefix; first segment is the model type folder
+                rel = norm_path[len(models_root):]
+                segments = rel.split("/")
+                if len(segments) > 1:
+                    # e.g. "inpainting/lama_fp32.onnx" -> type = "inpainting"
+                    current_type = segments[0].lower()
+
+            # Apply type filter
+            if type_filter is not None and current_type != type_filter:
+                continue
+
+            # Apply format filter on the extension
+            if format_filter is not None:
+                ext = os.path.splitext(name)[1].lstrip(".").lower()
+                if ext != format_filter:
+                    continue
+
+            results.append({
+                "name": name,
+                "path": path,
+            })
+
+        return results
+

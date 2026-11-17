@@ -114,6 +114,8 @@ class CoreProcess:
 
             self._ensure_daemon_script()
 
+            # Senza bufsize=0 gli stream sono buffered: read(n) restituisce esattamente n byte
+            # (con uno stream raw su pipe read(n) può restituire meno, troncando la risposta)
             self.process = subprocess.Popen(
                 [
                     self.python_executable,
@@ -121,8 +123,7 @@ class CoreProcess:
                 ],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                bufsize=0
+                stderr=subprocess.PIPE
             )
             return self.process
 

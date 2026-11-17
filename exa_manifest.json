@@ -49,8 +49,16 @@
     "lama_fp32.onnx": {
       "Universal": {
         "Universal": {
-      "url": "https://github.com/ExtremeAddons/ExaCoreAi/releases/download/v1.0.0/lama_fp32.onnx",
-      "sha256": "1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6"
+          "url": "https://github.com/ExtremeAddons/ExaCoreAi/releases/download/v1.0.0/lama_fp32.onnx",
+          "sha256": "1faef5301d78db7dda502fe59966957ec4b79dd64e16f03ed96913c7a4eb68d6"
+        }
+      }
+    },
+    "big-lama-dynamic-fp32.onnx": {
+      "Universal": {
+        "Universal": {
+          "url": "https://github.com/ExtremeAddons/ExaCoreAi/releases/download/v1.0.0/big-lama-dynamic-fp32.onnx",
+          "sha256": "sha256:5f39f5e80b91596fd50f3227858c97912dabc0ffbd4796f21ca688529abb8771"
         }
       }
     }

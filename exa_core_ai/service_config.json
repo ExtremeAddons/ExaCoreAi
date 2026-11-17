@@ -16,6 +16,11 @@
       "name": "lama_fp32.onnx",
       "version": "Universal",
       "target_subfolder": "models/inpainting/lama_fp32.onnx"
+    },
+    {
+      "name": "big-lama-dynamic-fp32.onnx",
+      "version": "Universal",
+      "target_subfolder": "models/inpainting/big-lama-dynamic-fp32.onnx"
     }
   ],
   "manifest_url": "https://cdn.jsdelivr.net/gh/ExtremeAddons/ExaCoreAi@master/exa_manifest.json",
