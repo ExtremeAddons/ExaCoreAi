@@ -23,6 +23,6 @@
       "target_subfolder": "models/inpainting/big-lama-dynamic-fp32.onnx"
     }
   ],
-  "manifest_url": "https://cdn.jsdelivr.net/gh/ExtremeAddons/ExaCoreAi@master/exa_manifest.json",
+  "manifest_url": "https://raw.githubusercontent.com/ExtremeAddons/ExaCoreAi/8c398f11294403f0ba5e49af5a613ff22860a89d/exa_manifest.json",
   "target_folder_name": "ExaCoreAi"
 }
